@@ -64,40 +64,48 @@ var lineAlign = {
         return repeat(Math.floor((len - val.length)/2) ,' ')+ val +repeat(Math.ceil((len - val.length)/2),' ');
     }
 };
-
+var valueGetter = Z.getProperty('value');
 var align = function(str, len, align) {
-    // Your code goes here
-    //console.log(str)
-    //str = str.replace(/\n/g,'');
     var out = [],
         lineAligner = lineAlign[align],
-        lastLineAligner = lineAlign[align==='right'||align==='center'?align:'left'];
-    str = str.split(' ').filter(String);
-    var line = [], min, item;
-    while(str.length){
-        item = str.shift();
+        lastLineAligner = lineAlign[align==='right'||align==='center'?align:'left'],
+        collector = [],
+        doBreak,
+        line = [], min = 0, item, newLine,
+        collectorCount, i = 0;
 
-        line.push(item);
-        min = line.join(' ').length;
-        if( min === len || (min < len && item.charAt(item.length-1)==='\n')){
-            out.push(lineAligner(line, len));
+    str.replace(/([^\s\n]+)|([\s\n])/g, function(a,b){
+        collector.push({type:b?1:0, value: a, length: b?a.length: 0});
+    });
+    collector.push({value: '\n', length: 0, type:1});
+
+    collectorCount = collector.length;
+
+    while(collectorCount > i){
+        item = collector[i];
+
+        min += item.length;
+        newLine = item.value === '\n';
+        doBreak = min > len;
+
+        if(item.type === 1 && !doBreak && !newLine)
+            line.push(item);
+
+        if(min<=len || newLine)
+            i++;
+
+        if(min >= len || newLine){
+            out.push(
+                (line.length === 1 || newLine? lastLineAligner : lineAligner) // select right justify function
+                    (line.map(valueGetter), len) // and call it
+            );
             line = [];
-        }else if(min > len){
-            if(line.length === 1){
-                out.push(line[0]);
-            }else{
-                str.unshift(line.pop());
-                if(line.length === 1){
-                    out.push(lastLineAligner(line, len));
-                }else{
-                    out.push(lineAligner(line, len));
-                }
-            }
-            line = [];
+            min = 0;
+        }else if(item.type===0){ // add spaces
+            min++;
         }
-
     }
-    line.length && out.push(lastLineAligner(line, len));
+
     return out;
 };
 
@@ -207,7 +215,7 @@ var text = 'Lorem ipsum\n dolor sit amet, consectetur adipiscing elit. Vestibulu
 
 var b = new Block({
     value: text,
-    style: {align: 'right', width:30, border:{width: 0, right: {width:1}}}
+    style: {align: 'justify', width:30, border:{width: 0, right: {width:1}}}
 });
 /*var b = new Block({
     value: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
@@ -215,4 +223,12 @@ var b = new Block({
 });*/
 
 console.log(b+'');
+
+console.log(
+    (b+'').split('\n').join(' ').replace(/(\s+)/g,' '))
+console.log(
+    text.split('\n').join(' ').replace(/(\s+)/g,' '));
+console.log(
+    (b+'').split('\n').join(' ').replace(/(\s+)/g,' ') ===
+    text.split('\n').join(' ').replace(/(\s+)/g,' '))
 
