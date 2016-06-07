@@ -70,10 +70,9 @@ var replace = function (str, pos, substr, len) {
 var valueGetter = Z.getProperty('value');
 var alignBlocks = function (items, len) {
     var content = items.map(function(item){
-        var val = item.toString().split('\n');
-        return val;
+        return item.toString().split('\n');
     }),
-        max = 0, i, line, out = [], j, _j = items.length, style, item, subLine;
+        max = 0, i, line, out = [], j, _j = items.length, style, item, subLine, vertical;
     for( i = _j; i;){
         --i;
         if(max<content[i].length)
@@ -84,7 +83,15 @@ var alignBlocks = function (items, len) {
         for(j = 0; j < _j; j++){
             item = items[j];
             style = item.style;
-            subLine = content[j][i];
+            vertical = i;
+
+            if('top' in style)
+                vertical -= style.top;
+
+            if('bottom' in style)
+                vertical = i-(max-style.bottom-content[j].length);
+
+            subLine = content[j][vertical];
             if(subLine === void 0)
                 subLine = '';
 
@@ -257,12 +264,12 @@ var b = [new Block({
     style: {align: 'right', width:31, border:{width: 0, left: {width:1}}, left: 0}
 }),
     new Block({
-        value: text,
-        style: {align: 'center', width:30, left: 35}
+        value: text.substr(0,300),
+        style: {align: 'justify', width:30, left: 35, top:1}
     }),
     new Block({
-        value: text,
-        style: {align: 'left', width:31, border:{width: 0, right: {width:1}}, right: 0}
+        value: text.substr(0,300),
+        style: {align: 'left', width:31, border:{width: 0, right: {width:1}}, right: 0, bottom: 3}
     })];
 var x = new Block({
     items: b,
