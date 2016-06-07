@@ -64,7 +64,43 @@ var lineAlign = {
         return repeat(Math.floor((len - val.length)/2) ,' ')+ val +repeat(Math.ceil((len - val.length)/2),' ');
     }
 };
+var replace = function (str, pos, substr, len) {
+    return str.substr(0,pos)+substr+str.substr(pos+len);
+};
 var valueGetter = Z.getProperty('value');
+var alignBlocks = function (items, len) {
+    var content = items.map(function(item){
+        var val = item.toString().split('\n');
+        return val;
+    }),
+        max = 0, i, line, out = [], j, _j = items.length, style, item, subLine;
+    for( i = _j; i;){
+        --i;
+        if(max<content[i].length)
+            max = content[i].length;
+    }
+    for( i = 0; i < max; i++){
+        line = repeat(len, ' ');
+        for(j = 0; j < _j; j++){
+            item = items[j];
+            style = item.style;
+            subLine = content[j][i];
+            if(subLine === void 0)
+                subLine = '';
+
+            if('left' in style)
+                line = replace(line, style.left, subLine, subLine.length);
+
+            if('right' in style)
+                line = replace(line, len - style.right - subLine.length, subLine, subLine.length);
+        }
+        out.push(line);
+
+    }
+
+
+    return out;;
+};
 var align = function(str, len, align) {
     var out = [],
         lineAligner = lineAlign[align],
@@ -175,7 +211,10 @@ Block.prototype = {
         this.innerHeight = this.height - (offset[0]+offset[2]);
     },
     _calculateContent: function () {
-        this.content = align(this.value, this.innerWidth, this.style.align || 'left');
+        if(this.value)
+            this.content = align(this.value, this.innerWidth, this.style.align || 'left');
+        if(this.items)
+            this.content = alignBlocks(this.items, this.innerWidth);
     },
     postProcess: function () {
         var style = this.style;
@@ -213,22 +252,34 @@ var b = new Block({
 });*/
 var text = 'Lorem ipsum\n dolor sit amet, consectetur adipiscing elit. Vestibulum sagittis dolor mauris, at elementum ligula tempor eget. In quis rhoncus nunc, at aliquet orci. Fusce at dolor sit amet felis suscipit tristique. Nam a imperdiet tellus. Nulla eu vestibulum urna. Vivamus tincidunt suscipit enim, nec ultrices nisi volutpat ac. Maecenas sit amet lacinia arcu, non dictum justo. Donec sed quam vel risus faucibus euismod. Suspendisse rhoncus rhoncus felis at fermentum. Donec lorem magna, ultricies a nunc sit amet, blandit fringilla nunc. In vestibulum velit ac felis rhoncus pellentesque. Mauris at tellus enim. Aliquam eleifend tempus dapibus. Pellentesque commodo, nisi sit amet hendrerit fringilla, ante odio porta lacus, ut elementum justo nulla et dolor.';
 
-var b = new Block({
+var b = [new Block({
     value: text,
-    style: {align: 'justify', width:30, border:{width: 0, right: {width:1}}}
+    style: {align: 'right', width:31, border:{width: 0, left: {width:1}}, left: 0}
+}),
+    new Block({
+        value: text,
+        style: {align: 'center', width:30, left: 35}
+    }),
+    new Block({
+        value: text,
+        style: {align: 'left', width:31, border:{width: 0, right: {width:1}}, right: 0}
+    })];
+var x = new Block({
+    items: b,
+    style: {width: 99}
 });
 /*var b = new Block({
     value: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
     style: {width: 19, align: 'right', height: 7, border: {width:1}}
 });*/
 
-console.log(b+'');
-
+console.log(x+'');
+/*
 console.log(
     (b+'').split('\n').join(' ').replace(/(\s+)/g,' '))
 console.log(
     text.split('\n').join(' ').replace(/(\s+)/g,' '));
 console.log(
     (b+'').split('\n').join(' ').replace(/(\s+)/g,' ') ===
-    text.split('\n').join(' ').replace(/(\s+)/g,' '))
+    text.split('\n').join(' ').replace(/(\s+)/g,' '))*/
 
