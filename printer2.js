@@ -42,33 +42,39 @@ var getSymbols = function (cfg, defaultSymbol) {
     return symbols;
 };
 var lineAlign = {
-    justify: function(line, len){
+    justify: function(line, len, background){
         var subLine = '';
+        background = background || ' ';
         while (line.length > 1) {
             var diff = len - line.join('').length - subLine.length,
                 spaces = diff / (line.length - 1);
-            subLine += line.shift() + (new Array(Math.ceil(spaces) + 1)).join(' ');
+            subLine += line.shift() + (new Array(Math.ceil(spaces) + 1)).join(background);
         }
         return (subLine + line[0]);
     },
-    left: function (line, len) {
-        var val = line.join(' ');
-        return val+repeat(len - val.length ,' ');
+    left: function (line, len, background) {
+        background = background || ' ';
+        var val = line.join(background);
+
+        return val+repeat(len - val.length ,background);
     },
-    right: function (line, len) {
-        var val = line.join(' ');
-        return repeat(len - val.length ,' ')+val;
+    right: function (line, len, background) {
+        background = background || ' ';
+        var val = line.join(background);
+        return repeat(len - val.length ,background)+val;
     },
-    center: function (line, len) {
-        var val = line.join(' ');
-        return repeat(Math.floor((len - val.length)/2) ,' ')+ val +repeat(Math.ceil((len - val.length)/2),' ');
+    center: function (line, len, background) {
+        background = background || ' ';
+        var val = line.join(background);
+        return repeat(Math.floor((len - val.length)/2) ,background)+ val +repeat(Math.ceil((len - val.length)/2),background);
     }
 };
 var replace = function (str, pos, substr, len) {
     return str.substr(0,pos)+substr+str.substr(pos+len);
 };
 var valueGetter = Z.getProperty('value');
-var alignBlocks = function (items, len) {
+var alignBlocks = function (items, len, background) {
+    background = background || ' ';
     var content = items.map(function(item){
         return item.toString().split('\n');
     }),
@@ -79,7 +85,7 @@ var alignBlocks = function (items, len) {
             max = content[i].length;
     }
     for( i = 0; i < max; i++){
-        line = repeat(len, ' ');
+        line = repeat(len, background);
         for(j = 0; j < _j; j++){
             item = items[j];
             style = item.style;
@@ -220,8 +226,9 @@ Block.prototype = {
     _calculateContent: function () {
         if(this.value)
             this.content = align(this.value, this.innerWidth, this.style.align || 'left');
+
         if(this.items)
-            this.content = alignBlocks(this.items, this.innerWidth);
+            this.content = alignBlocks(this.items, this.innerWidth, this.style.background);
     },
     postProcess: function () {
         var style = this.style;
@@ -273,7 +280,7 @@ var b = [new Block({
     })];
 var x = new Block({
     items: b,
-    style: {width: 99}
+    style: {width: 99, background: '%'}
 });
 /*var b = new Block({
     value: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
