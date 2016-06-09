@@ -26,8 +26,8 @@ var getWidths = function (cfg) {
     return widths;
 };
 var getSymbols = function (cfg, defaultSymbol) {
-    var symbol = cfg.symbol || defaultSymbol, symbols, i;
-    if(typeof symbol === 'string')
+    var symbol = cfg.symbol || defaultSymbol, symbols, i, type = typeof symbol;
+    if(type === 'string' || type === 'function')
         symbols = [symbol];
     else
         symbols = symbol.slice();
@@ -114,7 +114,7 @@ var alignBlocks = function (items, len, background) {
 
     return out;;
 };
-var align = function(str, len, align) {
+var align = function(str, len, align, background) {
     var out = [],
         lineAligner = lineAlign[align],
         lastLineAligner = lineAlign[align==='right'||align==='center'?align:'left'],
@@ -146,7 +146,7 @@ var align = function(str, len, align) {
         if(min >= len || newLine){
             out.push(
                 (line.length === 1 || newLine? lastLineAligner : lineAligner) // select right justify function
-                    (line.map(valueGetter), len) // and call it
+                    (line.map(valueGetter), len, background) // and call it
             );
             line = [];
             min = 0;
@@ -157,43 +157,47 @@ var align = function(str, len, align) {
 
     return out;
 };
-
+var borderFn = function(width, symbol){
+    var cache;
+    if(typeof(symbol) === 'function'){
+        return function(a,b,c){
+            var out = '', char;
+            while(out.length<width && (char = symbol(a,b,c)))
+                out+=char;
+            //a = symbol(a,b,c);
+            return out;//repeat(width, a);
+        };
+    }else{
+        cache = repeat(width, symbol);
+        return function () {
+            return cache;
+        };
+    }
+};
 var wrap = function (content, cfg, defaultSymbol) {
     var symbols = getSymbols(cfg, defaultSymbol), width, widths = getWidths(cfg),
-        borderLeft, borderRight, i,
+        borderLeft, borderRight, borderTop,borderBottom, i,
         out = [], tmp;// = content[0].length;
 
     //console.log(widths,symbols);
-    width = content[0].length;
-    tmp = repeat(width+widths[3]+widths[1], symbols[0]);
-    for(i = widths[0]; i--;)
-        out.push(tmp);
 
-    borderLeft = (function(width, symbol){
-        var cache;
-        if(typeof(symbol) === 'function'){
-            return function(a,b,c){
-                a = symbol(a,b,c);
-                return repeat(width, a);
-            };
-        }else{
-            cache = repeat(width, symbol);
-            return function () {
-                return cache;
-            };
-        }
-    })(widths[3], symbols[3]);
-    borderRight = function(){
-        return repeat(widths[1], symbols[1]);
-    };
+    width = content[0].length;
+    borderTop = borderFn(width+widths[3]+widths[1], symbols[0]);
+    borderBottom = borderFn(width+widths[3]+widths[1], symbols[2]);
+    //tmp = repeat(width+widths[3]+widths[1], symbols[0]);
+    for(i = widths[0]; i--;)
+        out.push(borderTop(i));
+
+    borderLeft = borderFn(widths[3], symbols[3]);
+    borderRight = borderFn(widths[1], symbols[1]);
 
     out = out.concat(content.map(function(el, i){
         return borderLeft(i,el)+ el +borderRight(i, el);
     }));
 
-    tmp = repeat(width+widths[3]+widths[1], symbols[2]);
+    //tmp = repeat(width+widths[3]+widths[1], symbols[2]);
     for(i = widths[2]; i--;)
-        out.push(tmp);
+        out.push(borderBottom(i));
     content = out;
     return content;
 };
@@ -225,7 +229,7 @@ Block.prototype = {
     },
     _calculateContent: function () {
         if(this.value)
-            this.content = align(this.value, this.innerWidth, this.style.align || 'left');
+            this.content = align(this.value, this.innerWidth, this.style.align || 'left', this.style.background);
 
         if(this.items)
             this.content = alignBlocks(this.items, this.innerWidth, this.style.background);
@@ -272,15 +276,15 @@ var b = [new Block({
 }),
     new Block({
         value: text.substr(0,300),
-        style: {align: 'justify', width:30, left: 35, top:1}
+        style: {align: 'justify', width:30, left: 35, top:1, background:'hu'}
     }),
     new Block({
         value: text.substr(0,300),
-        style: {align: 'left', width:31, border:{width: 0, right: {width:1}}, right: 0, bottom: 3}
+        style: {align: 'left', width:31, border:{width: 0, right: {width:1}}, right: 0, bottom: 7}
     })];
 var x = new Block({
     items: b,
-    style: {width: 99, background: '%'}
+    style: {width: 90, background: '~',border: {width: 5, symbol: function(i){return Math.random()<0.5?'/':'\\';} }}
 });
 /*var b = new Block({
     value: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
