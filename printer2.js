@@ -4,6 +4,22 @@
 'use strict';
 var Z = require('z-lib');
 
+var borderSymbols = '─┐│┘─└│┌ ';
+var boxDrawer = function(borderSymbols){
+    borderSymbols = borderSymbols.split('');
+    return function(x,y,w,h) {
+        return (y === 0 ? (
+            x === 0 ? borderSymbols[7] : x === w-1 ? borderSymbols[1] : borderSymbols[0]
+        ) : (
+            (y === h ? (
+                x === 0 ? borderSymbols[5] : x === w-1 ? borderSymbols[3] : borderSymbols[4]
+            ) : (
+                x === 0 ? borderSymbols[6] : x === w ? borderSymbols[2] : borderSymbols[8]
+            ))
+        ));
+    };
+};
+
 var repeat = function (count, char) {
     return count<=0?'':new Array(count+1).join(char).substr(0, count);
 };
@@ -181,13 +197,15 @@ var align = function(str, len, align, background) {
 
     return out;
 };
-var borderFn = function(width, symbol){
+var borderFn = function(width, height, symbol){
     var cache;
     if(typeof(symbol) === 'function'){
-        return function(a,b,c){
-            var out = '', char;
-            while(out.length<width && (char = symbol(a,b,c)))
-                out+=char;
+        return function(a,b,c,d){
+            var out = '', char, i = 0;
+            while(out.length<width && (char = symbol(i,a,width,height))) {
+                out += char;
+                i++;
+            }
             //a = symbol(a,b,c);
             return out;//repeat(width, a);
         };
@@ -201,27 +219,29 @@ var borderFn = function(width, symbol){
 var wrap = function (content, cfg, defaultSymbol) {
     var symbols = getSymbols(cfg, defaultSymbol), width, widths = getWidths(cfg),
         borderLeft, borderRight, borderTop,borderBottom, i,
-        out = [], tmp;// = content[0].length;
+        out = [], tmp, fullWidth, fullHeight;// = content[0].length;
 
     //console.log(widths,symbols);
 
     width = content[0].length;
-    borderTop = borderFn(width+widths[3]+widths[1], symbols[0]);
-    borderBottom = borderFn(width+widths[3]+widths[1], symbols[2]);
+    fullWidth = width+widths[3]+widths[1];
+    fullHeight = content.length +widths[2]+widths[0];
+    borderTop = borderFn(fullWidth,fullHeight, symbols[0]);
+    borderBottom = borderFn(fullWidth,fullHeight, symbols[2]);
     //tmp = repeat(width+widths[3]+widths[1], symbols[0]);
     for(i = widths[0]; i--;)
-        out.push(borderTop(i));
+        out.push(borderTop(i,fullWidth));
 
-    borderLeft = borderFn(widths[3], symbols[3]);
-    borderRight = borderFn(widths[1], symbols[1]);
+    borderLeft = borderFn(widths[3], fullHeight, symbols[3]);
+    borderRight = borderFn(widths[1], fullHeight, symbols[1]);
 
     out = out.concat(content.map(function(el, i){
-        return borderLeft(i,el)+ el +borderRight(i, el);
+        return borderLeft(i+widths[0])+ el +borderRight(i+widths[0], el);
     }));
 
     //tmp = repeat(width+widths[3]+widths[1], symbols[2]);
     for(i = widths[2]; i--;)
-        out.push(borderBottom(i));
+        out.push(borderBottom(fullHeight-i));
     content = out;
     return content;
 };
@@ -306,13 +326,13 @@ var b = [new Block({
         value: text.substr(0,300),
         style: {
             align: 'left', width: 31,
-            border: {width: 1, right: {width: 2}},
+            border: {width: 1, symbol: boxDrawer(borderSymbols)},
             right: 0,
             bottom: 3,
             padding: {
                 width: 1,
                 symbol: function (x, y) {
-                    return (x / 2 % 2) ^ (y % 2) ? '=' : ' ';
+                    return (x / 2 % 2) ^ (y /2% 2) ? '#' : ' ';
                 }
             },
             margin: {
